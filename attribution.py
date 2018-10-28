@@ -62,12 +62,14 @@ class Attribution(object):
         ''' Attribute in one batch '''
         #-- Encode
         for batch in tqdm(training_data, mininterval=2,
-            desc='  - (Training)   ', leave=False):
+            desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(lambda x: x.to(self.device), batch)
 
             # forward
             pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos)
+            print(pred)
             pred.backward()
+
 
 
 if __name__ == "__main__":
