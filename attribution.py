@@ -54,21 +54,28 @@ class Attribution(object):
         model.word_prob_prj = nn.LogSoftmax(dim=1)
 
         model = model.to(self.device)
+        print(model)
 
         self.model = model
         self.model.eval()
 
     def attribute_batch(self,training_data):
+
+        def f(x):
+            x.to(self.device)
+            x.required_grad = True
+            return x
         ''' Attribute in one batch '''
         #-- Encode
         for batch in tqdm(training_data, mininterval=2,
             desc='  - (Attributing)   ', leave=False):
-            src_seq, src_pos, tgt_seq, tgt_pos = map(lambda x: x.to(self.device), batch)
+            src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
 
             # forward
             pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos)
-            print(pred)
-            pred.backward()
+            #pred.backward()
+            pred[0][1].backward()
+            print(src_pos.data.grad)
 
 
 
@@ -77,7 +84,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument('-data', required=True)
-    parser.add_argument('-batch_size', type=int, default=32)
+    parser.add_argument('-batch_size', type=int, default=1)
     parser.add_argument('-model', required=True,
                         help='Path to model .pt file')
     parser.add_argument('-no_cuda', action='store_true')
