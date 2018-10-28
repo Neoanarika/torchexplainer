@@ -1,4 +1,5 @@
 import argparse
+from tqdm import tqdm 
 import torch
 import torch.utils.data
 from torch import nn
@@ -20,7 +21,7 @@ from transformer.Beam import Beam
 class Attribution(object):
     ''' Load with trained model and handle the beam search '''
 
-    def __init__(self,opt,training_data):
+    def __init__(self,opt):
         #opt is from argprass 
         self.opt = opt
         self.device = torch.device('cuda' if opt.cuda else 'cpu')
@@ -57,7 +58,7 @@ class Attribution(object):
         self.model = model
         self.model.eval()
 
-    def attribute_batch(self):
+    def attribute_batch(self,training_data):
         ''' Attribute in one batch '''
         #-- Encode
         for batch in tqdm(training_data, mininterval=2,
@@ -86,4 +87,5 @@ if __name__ == "__main__":
     data = torch.load(opt.data)
 
     training_data, validation_data = prepare_dataloaders(data, opt)
-    translator = Attribution(opt,training_data)
+    attributor = Attribution(opt)
+    attributor.attribute_batch(training_data)
