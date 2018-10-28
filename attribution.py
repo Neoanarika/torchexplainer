@@ -63,7 +63,7 @@ class Attribution(object):
         #-- Encode
         for batch in tqdm(training_data, mininterval=2,
             desc='  - (Training)   ', leave=False):
-            src_seq, src_pos, tgt_seq, tgt_pos = map(lambda x: x.to(device), batch)
+            src_seq, src_pos, tgt_seq, tgt_pos = map(lambda x: x.to(self.device), batch)
 
             # forward
             pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos)
