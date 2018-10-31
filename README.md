@@ -1,4 +1,4 @@
-# Understanding Translation : Axiomatic Attribution for NMT
+# torchexplainer : Axiomatic Attribution for NMT
 
 This is based on a PyTorch implementation of the Transformer model in "[Attention is All You Need](https://arxiv.org/abs/1706.03762)" (Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, Illia Polosukhin, arxiv, 2017) by Yu-Hsiang Huang.
 
@@ -58,27 +58,6 @@ python translate.py -model trained.chkpt -vocab data/multi30k.atok.low.pt -src d
 ```bash
 python attribution.py -model trained.chkpt -data data/multi30k.atok.low.pt -no_cuda
 ```
----
-# Performance
-## Training
-
-<p align="center">
-<img src="https://imgur.com/rKeP1bb.png" width="400">
-<img src="https://imgur.com/9je3X6U.png" width="400">
-</p>
-
-- Parameter settings:
-  - default parameter and optimizer settings
-  - label smoothing 
-  - target embedding / pre-softmax linear layer weight sharing. 
-
-- Elapse per epoch (on NVIDIA Titan X):
-  - Training set: 0.888 minutes
-  - Validation set: 0.011 minutes
-  
-## Testing 
-- coming soon.
----
 
 # Acknowledgement
 - https://github.com/jadore801120/attention-is-all-you-need-pytorch by Yu-Hsiang Huang
