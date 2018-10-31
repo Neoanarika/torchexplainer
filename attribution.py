@@ -3,7 +3,7 @@ from tqdm import tqdm
 import torch
 import torch.utils.data
 from torch import nn
-from torch.autograd import grad
+from torch.autograd import Variable, grad
 from train import prepare_dataloaders
 from dataset import collate_fn, TranslationDataset
 from preprocess import read_instances_from_file, convert_instance_to_idx_seq
@@ -61,21 +61,22 @@ class Attribution(object):
 
     def attribute_batch(self,training_data):
 
+        # LongTensor cannot be backpropogated
         def f(x):
+            #x = x.type(torch.FloatTensor)
+            #x.requires_grad = True
             x.to(self.device)
-            x.required_grad = True
             return x
         ''' Attribute in one batch '''
         #-- Encode
         for batch in tqdm(training_data, mininterval=2,
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
-
             # forward
             pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos)
             #pred.backward()
             pred[0][1].backward()
-            print(src_pos.data.grad)
+            print(self.model.encoder.src_word_emb.weight.grad)
 
 
 
