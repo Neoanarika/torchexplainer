@@ -71,6 +71,7 @@ class Attribution(object):
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
             for k in range(1,self.m+1):
+                print(src_seq.shape)
                 pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos,alpha=k/self.m)
                 
                 translated_sentence,idx = torch.max(pred,1)
@@ -78,6 +79,7 @@ class Attribution(object):
                     #Finds the gradient of a single sentence
                     if k == 1: IG = 1/self.m*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0]
                     IG += 1/self.m*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0]
+
 if __name__ == "__main__":
     # Prepare DataLoader
     parser = argparse.ArgumentParser()
