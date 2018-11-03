@@ -76,7 +76,7 @@ class Encoder(nn.Module):
             EncoderLayer(d_model, d_inner, n_head, d_k, d_v, dropout=dropout)
             for _ in range(n_layers)])
 
-    def forward(self, src_seq, src_pos, return_attns=False):
+    def forward(self, src_seq, src_pos, alpha = 1.0,return_attns=False):
 
         enc_slf_attn_list = []
 
@@ -87,14 +87,17 @@ class Encoder(nn.Module):
         # -- Forward
         enc_output = self.src_word_emb(src_seq) + self.position_enc(src_pos)
         self.emb = Variable(enc_output,requires_grad=True)
+        # The baseline is choosen to be all zeros, as per the paper 
+        baseline = torch.zeros(self.emb.shape)
+        IG_input = baseline + alpha*(self.emb-baseline)
 
         enc_output, enc_slf_attn = self.layer_stack[0](
-                self.emb,
+                IG_input,
                 non_pad_mask=non_pad_mask,
                 slf_attn_mask=slf_attn_mask)
         if return_attns:
             enc_slf_attn_list += [enc_slf_attn]
-            
+
         for enc_layer in self.layer_stack[1:]:
             enc_output, enc_slf_attn = enc_layer(
                 enc_output,
