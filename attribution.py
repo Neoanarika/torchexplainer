@@ -25,7 +25,7 @@ class Attribution(object):
         #opt is from argprass 
         self.opt = opt
         self.device = torch.device('cuda' if opt.cuda else 'cpu')
-
+        self.m = opt.m 
         #opt.model is the model path 
         checkpoint = torch.load(opt.model)
         #model_opt is the model hyper params
@@ -63,8 +63,6 @@ class Attribution(object):
 
         # LongTensor cannot be backpropogated
         def f(x):
-            #x = x.type(torch.FloatTensor)
-            #x.requires_grad = True
             x.to(self.device)
             return x
         ''' Attribute in one batch '''
@@ -75,8 +73,14 @@ class Attribution(object):
             # forward
             pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos)
             #pred.backward()
-            pred[0][1].backward()
-            print(self.model.encoder.src_word_emb.weight.grad)
+            #Working with only a single word output for now. 
+            # aka why does it predict the first word of the first sentence ? 
+            print(src_seq.shape)
+            #print(self.model.encoder.enc_input.grad)
+            #pred[0][0].backward()
+            print(torch.autograd.grad(pred[0][0].sum(), self.model.encoder.emb, retain_graph=True,allow_unused=True))
+            #print(self.model.encoder.src_word_emb.weight.grad.shape)
+            #print(self.model.encoder.src_word_emb.weight.grad)
 
 
 
@@ -86,6 +90,8 @@ if __name__ == "__main__":
     
     parser.add_argument('-data', required=True)
     parser.add_argument('-batch_size', type=int, default=1)
+    parser.add_argument('-m',type=int, default=100,
+                        help='Resolution of the integrated gradient')
     parser.add_argument('-model', required=True,
                         help='Path to model .pt file')
     parser.add_argument('-no_cuda', action='store_true')

@@ -1,6 +1,7 @@
 ''' Define the Transformer model '''
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 import numpy as np
 import transformer.Constants as Constants
 from transformer.Layers import EncoderLayer, DecoderLayer
@@ -63,7 +64,7 @@ class Encoder(nn.Module):
         super().__init__()
 
         n_position = len_max_seq + 1
-
+        self.emb = 0
         self.src_word_emb = nn.Embedding(
             n_src_vocab, d_word_vec, padding_idx=Constants.PAD)
 
@@ -85,8 +86,16 @@ class Encoder(nn.Module):
 
         # -- Forward
         enc_output = self.src_word_emb(src_seq) + self.position_enc(src_pos)
+        self.emb = Variable(enc_output,requires_grad=True)
 
-        for enc_layer in self.layer_stack:
+        enc_output, enc_slf_attn = self.layer_stack[0](
+                self.emb,
+                non_pad_mask=non_pad_mask,
+                slf_attn_mask=slf_attn_mask)
+        if return_attns:
+            enc_slf_attn_list += [enc_slf_attn]
+            
+        for enc_layer in self.layer_stack[1:]:
             enc_output, enc_slf_attn = enc_layer(
                 enc_output,
                 non_pad_mask=non_pad_mask,
