@@ -61,5 +61,7 @@ python attribution.py -model trained.chkpt -data data/multi30k.atok.low.pt -no_c
 
 # Results
 ![Alt Text](https://github.com/Neoanarika/torchexplainer/blob/master/translation.png)
+Figure 1: Translating English to German, the brighter the square the more the model uses that word to come up with its corresponding translation. 
+
 # Acknowledgement
 - https://github.com/jadore801120/attention-is-all-you-need-pytorch by Yu-Hsiang Huang
