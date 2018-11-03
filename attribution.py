@@ -1,4 +1,5 @@
 import argparse
+import pickle
 from tqdm import tqdm 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -60,7 +61,7 @@ class Attribution(object):
         self.model = model
         self.model.eval()
 
-    def attribute_batch(self,training_data):
+    def attribute_batch(self,training_data,dev=False):
 
         # LongTensor cannot be backpropogated
         def f(x):
@@ -70,24 +71,33 @@ class Attribution(object):
         #-- Encode
         # Understand the correctness of the code
         # Understand the output -> Visualisation 
-
+        F = []
         for batch in tqdm(training_data, mininterval=2,
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
             IG = []
-            print(src_seq.shape)
             for k in range(1,self.m+1):
 
                 pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos,alpha=k/self.m)
                 
-                translated_sentence,idx = torch.max(pred,1)
-                for id_,translated_word in enumerate(translated_sentence):
+                val,translated_sentence = torch.max(pred,1)
+                for id_,translated_word in enumerate(val):
                     #Finds the gradient of a single sentence
 
                     if k == 1: IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
                     IG[id_] += torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
-            IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
-            return IG,src_seq,idx
+            
+            F.append({
+                    "IG":IG,
+                    "src_seq":src_seq,
+                    "translated_sentence":translated_sentence,
+                })
+
+            if dev:
+                IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
+                return IG,src_seq,translated_sentence
+        return F 
+
 if __name__ == "__main__":
     # Prepare DataLoader
     parser = argparse.ArgumentParser()
@@ -98,9 +108,12 @@ if __name__ == "__main__":
                         help='Resolution of the integrated gradient')
     parser.add_argument('-model', required=True,
                         help='Path to model .pt file')
+    parser.add_argument('-out',help='Path to output file of ')
     parser.add_argument('-no_cuda', action='store_true')
+    parser.add_argument('-dev', action='store_true')
 
     opt = parser.parse_args()
+    assert opt.dev or opt.out!=None, "You are not in dev mode but you don't have an output file"
     opt.cuda = not opt.no_cuda
 
     #========= Loading Dataset =========#
@@ -108,24 +121,29 @@ if __name__ == "__main__":
 
     training_data, validation_data = prepare_dataloaders(data, opt)
     attributor = Attribution(opt)
-    IG,src_seq,translated_sentence  = attributor.attribute_batch(validation_data)
-    #print(src_seq)
-    original_line = [validation_data.dataset.src_idx2word[idx.item()] for idx in src_seq[0]]
-    pred_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in translated_sentence]
-    print(IG)
-    # plt.imshow(IG, cmap='gist_gray_r', vmin=0, vmax=0.2,interpolation="nearest")
-    # plt.show()
-    fig = plt.figure(figsize=(8, 8.5))
-    ax = fig.add_subplot(1, 1, 1)
-    ax.imshow(IG, interpolation='nearest', cmap='gray')
+    if opt.dev : 
+        IG,src_seq,translated_sentence  = attributor.attribute_batch(validation_data,dev=True)
 
-    ax.set_yticks(range(len(original_line)))
-    ax.set_yticklabels(original_line)
-    
-    ax.set_xticks(range(len(pred_line)))
-    ax.set_xticklabels(pred_line, rotation=45)
-    
-    ax.set_xlabel('Output Sequence')
-    ax.set_ylabel('Input Sequence')
-    fig.show()
-    plt.show()
+        original_line = [validation_data.dataset.src_idx2word[idx.item()] for idx in src_seq[0]]
+        pred_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in translated_sentence]
+
+        fig = plt.figure(figsize=(8, 8.5))
+        ax = fig.add_subplot(1, 1, 1)
+        ax.imshow(IG, interpolation='nearest', cmap='gray')
+
+        ax.set_yticks(range(len(original_line)))
+        ax.set_yticklabels(original_line)
+
+        ax.set_xticks(range(len(pred_line)))
+        ax.set_xticklabels(pred_line, rotation=45)
+
+        ax.set_xlabel('Output Sequence')
+        ax.set_ylabel('Input Sequence')
+        fig.show()
+        plt.show()
+
+    else: 
+        outfile = open(opt.out,'wb')
+        F = attributor.attribute_batch(validation_data)
+        pickle.dump(F,outfile)
+        outfile.close()
