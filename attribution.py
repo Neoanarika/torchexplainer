@@ -70,12 +70,12 @@ class Attribution(object):
         for batch in tqdm(training_data, mininterval=2,
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
-            pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos)
-            
-            translated_sentence,idx = torch.max(pred,1)
-            for translated_word in translated_sentence:
-                #Finds the gradient of a single sentence
-                for m in range(self.m):
+            for k in range(1,self.m+1):
+                pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos,alpha=k/self.m)
+                
+                translated_sentence,idx = torch.max(pred,1)
+                for translated_word in translated_sentence:
+                    #Finds the gradient of a single sentence
                     print(torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True))
 
 if __name__ == "__main__":

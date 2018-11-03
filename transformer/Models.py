@@ -88,6 +88,8 @@ class Encoder(nn.Module):
         enc_output = self.src_word_emb(src_seq) + self.position_enc(src_pos)
         self.emb = Variable(enc_output,requires_grad=True)
         # The baseline is choosen to be all zeros, as per the paper 
+        # I am thinking of making IG as a deocrator of sorts,
+        # then be use to wrap functions
         baseline = torch.zeros(self.emb.shape)
         IG_input = baseline + alpha*(self.emb-baseline)
 
@@ -208,11 +210,11 @@ class Transformer(nn.Module):
             "To share word embedding table, the vocabulary size of src/tgt shall be the same."
             self.encoder.src_word_emb.weight = self.decoder.tgt_word_emb.weight
 
-    def forward(self, src_seq, src_pos, tgt_seq, tgt_pos):
+    def forward(self, src_seq, src_pos, tgt_seq, tgt_pos,alpha=1.0):
 
         tgt_seq, tgt_pos = tgt_seq[:, :-1], tgt_pos[:, :-1]
 
-        enc_output, *_ = self.encoder(src_seq, src_pos)
+        enc_output, *_ = self.encoder(src_seq, src_pos,alpha = alpha)
         dec_output, *_ = self.decoder(tgt_seq, tgt_pos, src_seq, enc_output)
         seq_logit = self.tgt_word_prj(dec_output) * self.x_logit_scale
         return seq_logit.view(-1, seq_logit.size(2))
