@@ -70,14 +70,12 @@ class Attribution(object):
         for batch in tqdm(training_data, mininterval=2,
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
-            # forward
             pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos)
-            #pred.backward()
-            #Working with only a single word output for now. 
-            # aka why does it predict the first word of the first sentence ? 
-            print(pred.shape)
-            print(torch.autograd.grad(pred[0][0].sum(), self.model.encoder.emb, retain_graph=True,allow_unused=True))
-
+            
+            translated_sentence,idx = torch.max(pred,1)
+            for translated_word in translated_sentence:
+                #Finds the gradient of a single sentence
+                print(torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True))
 
 if __name__ == "__main__":
     # Prepare DataLoader
