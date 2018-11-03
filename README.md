@@ -56,7 +56,7 @@ python translate.py -model trained.chkpt -vocab data/multi30k.atok.low.pt -src d
 
 ### 4) Attribute
 ```bash
-python attribution.py -model trained.chkpt -data data/multi30k.atok.low.pt -no_cuda
+python attribution.py -model trained.chkpt -data data/multi30k.atok.low.pt -out igs -no_cuda
 ```
 
 # Results
