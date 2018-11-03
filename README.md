@@ -59,5 +59,7 @@ python translate.py -model trained.chkpt -vocab data/multi30k.atok.low.pt -src d
 python attribution.py -model trained.chkpt -data data/multi30k.atok.low.pt -no_cuda
 ```
 
+# Results
+![Alt Text](https://github.com/Neoanarika/torchexplainer/blob/master/translation.png)
 # Acknowledgement
 - https://github.com/jadore801120/attention-is-all-you-need-pytorch by Yu-Hsiang Huang
