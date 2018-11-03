@@ -81,13 +81,13 @@ class Attribution(object):
                 pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos,alpha=k/self.m)
                 
                 translated_sentence,idx = torch.max(pred,1)
-                for idx,translated_word in enumerate(translated_sentence):
+                for id_,translated_word in enumerate(translated_sentence):
                     #Finds the gradient of a single sentence
 
                     if k == 1: IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
-                    IG[idx] += torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
+                    IG[id_] += torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
             IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
-            return IG,src_seq,translated_sentence
+            return IG,src_seq,idx
 if __name__ == "__main__":
     # Prepare DataLoader
     parser = argparse.ArgumentParser()
@@ -109,5 +109,23 @@ if __name__ == "__main__":
     training_data, validation_data = prepare_dataloaders(data, opt)
     attributor = Attribution(opt)
     IG,src_seq,translated_sentence  = attributor.attribute_batch(validation_data)
-    plt.imshow(IG, cmap='gist_gray_r', vmin=0, vmax=0.2,interpolation="nearest")
+    #print(src_seq)
+    original_line = [validation_data.dataset.src_idx2word[idx.item()] for idx in src_seq[0]]
+    pred_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in translated_sentence]
+    print(IG)
+    # plt.imshow(IG, cmap='gist_gray_r', vmin=0, vmax=0.2,interpolation="nearest")
+    # plt.show()
+    fig = plt.figure(figsize=(8, 8.5))
+    ax = fig.add_subplot(1, 1, 1)
+    ax.imshow(IG, interpolation='nearest', cmap='gray')
+
+    ax.set_yticks(range(len(original_line)))
+    ax.set_yticklabels(original_line)
+    
+    ax.set_xticks(range(len(pred_line)))
+    ax.set_xticklabels(pred_line, rotation=45)
+    
+    ax.set_xlabel('Output Sequence')
+    ax.set_ylabel('Input Sequence')
+    fig.show()
     plt.show()
