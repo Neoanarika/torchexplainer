@@ -75,7 +75,8 @@ class Attribution(object):
             translated_sentence,idx = torch.max(pred,1)
             for translated_word in translated_sentence:
                 #Finds the gradient of a single sentence
-                print(torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True))
+                for m in range(self.m):
+                    print(torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True))
 
 if __name__ == "__main__":
     # Prepare DataLoader
@@ -83,7 +84,7 @@ if __name__ == "__main__":
     
     parser.add_argument('-data', required=True)
     parser.add_argument('-batch_size', type=int, default=1)
-    parser.add_argument('-m',type=int, default=100,
+    parser.add_argument('-m',type=int, default=10,
                         help='Resolution of the integrated gradient')
     parser.add_argument('-model', required=True,
                         help='Path to model .pt file')
