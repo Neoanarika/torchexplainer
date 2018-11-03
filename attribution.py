@@ -67,19 +67,23 @@ class Attribution(object):
             return x
         ''' Attribute in one batch '''
         #-- Encode
+        # Understand the correctness of the code
+        # Understand the output -> Visualisation 
         for batch in tqdm(training_data, mininterval=2,
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
+            IG = []
+            print(src_seq.shape)
             for k in range(1,self.m+1):
-                print(src_seq.shape)
+
                 pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos,alpha=k/self.m)
                 
                 translated_sentence,idx = torch.max(pred,1)
-                for translated_word in translated_sentence:
+                for idx,translated_word in enumerate(translated_sentence):
                     #Finds the gradient of a single sentence
-                    if k == 1: IG = 1/self.m*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0]
-                    IG += 1/self.m*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0]
-
+                    if k == 1: IG.append(1/self.m*self.model.encoder.difference*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0])
+                    IG[idx] += 1/self.m*self.model.encoder.difference*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0]
+            print(IG[0].shape)
 if __name__ == "__main__":
     # Prepare DataLoader
     parser = argparse.ArgumentParser()
@@ -100,4 +104,4 @@ if __name__ == "__main__":
 
     training_data, validation_data = prepare_dataloaders(data, opt)
     attributor = Attribution(opt)
-    attributor.attribute_batch(training_data)
+    attributor.attribute_batch(validation_data)

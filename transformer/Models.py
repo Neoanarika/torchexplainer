@@ -65,6 +65,7 @@ class Encoder(nn.Module):
 
         n_position = len_max_seq + 1
         self.emb = 0
+        self.difference = 0
         self.src_word_emb = nn.Embedding(
             n_src_vocab, d_word_vec, padding_idx=Constants.PAD)
 
@@ -91,7 +92,8 @@ class Encoder(nn.Module):
         # I am thinking of making IG as a deocrator of sorts,
         # then be use to wrap functions
         baseline = torch.zeros(self.emb.shape)
-        IG_input = baseline + alpha*(self.emb-baseline)
+        self.difference = self.emb-baseline
+        IG_input = baseline + alpha*(self.difference)
 
         enc_output, enc_slf_attn = self.layer_stack[0](
                 IG_input,
