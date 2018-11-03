@@ -1,5 +1,7 @@
 import argparse
 from tqdm import tqdm 
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.utils.data
 from torch import nn
@@ -8,7 +10,7 @@ from train import prepare_dataloaders
 from dataset import collate_fn, TranslationDataset
 from preprocess import read_instances_from_file, convert_instance_to_idx_seq
 from transformer.Models import Transformer
-from transformer.Beam import Beam
+
 # The first challenge is to handle beam search, this of course means for seq2seq problems we
 # apply IG in train phase 
 # Another challenge is the encoder decoder problem, i think can be solve by chain rule
@@ -54,7 +56,6 @@ class Attribution(object):
         model.word_prob_prj = nn.LogSoftmax(dim=1)
 
         model = model.to(self.device)
-        print(model)
 
         self.model = model
         self.model.eval()
@@ -69,6 +70,7 @@ class Attribution(object):
         #-- Encode
         # Understand the correctness of the code
         # Understand the output -> Visualisation 
+
         for batch in tqdm(training_data, mininterval=2,
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
@@ -81,9 +83,11 @@ class Attribution(object):
                 translated_sentence,idx = torch.max(pred,1)
                 for idx,translated_word in enumerate(translated_sentence):
                     #Finds the gradient of a single sentence
-                    if k == 1: IG.append(1/self.m*self.model.encoder.difference*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0])
-                    IG[idx] += 1/self.m*self.model.encoder.difference*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0]
-            print(IG[0].shape)
+
+                    if k == 1: IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
+                    IG[idx] += torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
+            IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
+            return IG,src_seq,translated_sentence
 if __name__ == "__main__":
     # Prepare DataLoader
     parser = argparse.ArgumentParser()
@@ -104,4 +108,6 @@ if __name__ == "__main__":
 
     training_data, validation_data = prepare_dataloaders(data, opt)
     attributor = Attribution(opt)
-    attributor.attribute_batch(validation_data)
+    IG,src_seq,translated_sentence  = attributor.attribute_batch(validation_data)
+    plt.imshow(IG, cmap='gist_gray_r', vmin=0, vmax=0.2,interpolation="nearest")
+    plt.show()
