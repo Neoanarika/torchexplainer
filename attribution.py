@@ -76,8 +76,8 @@ class Attribution(object):
                 translated_sentence,idx = torch.max(pred,1)
                 for translated_word in translated_sentence:
                     #Finds the gradient of a single sentence
-                    print(torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True))
-
+                    if k == 1: IG = 1/self.m*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0]
+                    IG += 1/self.m*torch.autograd.grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0]
 if __name__ == "__main__":
     # Prepare DataLoader
     parser = argparse.ArgumentParser()
