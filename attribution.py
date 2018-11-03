@@ -75,13 +75,8 @@ class Attribution(object):
             #pred.backward()
             #Working with only a single word output for now. 
             # aka why does it predict the first word of the first sentence ? 
-            print(src_seq.shape)
-            #print(self.model.encoder.enc_input.grad)
-            #pred[0][0].backward()
+            print(pred.shape)
             print(torch.autograd.grad(pred[0][0].sum(), self.model.encoder.emb, retain_graph=True,allow_unused=True))
-            #print(self.model.encoder.src_word_emb.weight.grad.shape)
-            #print(self.model.encoder.src_word_emb.weight.grad)
-
 
 
 if __name__ == "__main__":
