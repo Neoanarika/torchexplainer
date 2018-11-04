@@ -102,7 +102,8 @@ class Attribution(object):
     def visualisation(self,IG,original_line,pred_line):
         fig = plt.figure(figsize=(8, 8.5))
         ax = fig.add_subplot(1, 1, 1)
-        ax.imshow(IG, interpolation='nearest', cmap='gray')
+        img = ax.imshow(IG, interpolation='nearest', cmap='gray')
+        fig.colorbar(img, ax=ax)
 
         ax.set_yticks(range(len(original_line)))
         ax.set_yticklabels(original_line)
@@ -161,5 +162,4 @@ if __name__ == "__main__":
             IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
             original_line = [validation_data.dataset.src_idx2word[idx.item()] for idx in src_seq[0]]
             pred_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in translated_sentence]
-
             attributor.visualisation(IG,original_line,pred_line)
