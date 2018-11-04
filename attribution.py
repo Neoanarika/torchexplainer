@@ -1,3 +1,4 @@
+import os.path 
 import argparse
 import pickle
 from tqdm import tqdm 
@@ -98,7 +99,7 @@ class Attribution(object):
                 return IG,src_seq,translated_sentence
         return F 
 
-    def visualisation(self,original_line,pred_line):
+    def visualisation(self,IG,original_line,pred_line):
         fig = plt.figure(figsize=(8, 8.5))
         ax = fig.add_subplot(1, 1, 1)
         ax.imshow(IG, interpolation='nearest', cmap='gray')
@@ -143,10 +144,22 @@ if __name__ == "__main__":
         original_line = [validation_data.dataset.src_idx2word[idx.item()] for idx in src_seq[0]]
         pred_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in translated_sentence]
 
-        attributor.visualisation(original_line,pred_line)
+        attributor.visualisation(IG,original_line,pred_line)
 
     else: 
-        outfile = open(opt.out,'wb')
-        F = attributor.attribute_batch(validation_data)
-        pickle.dump(F,outfile)
-        outfile.close()
+        if not os.path.isfile(opt.out):
+            outfile = open(opt.out,'wb')
+            F = attributor.attribute_batch(validation_data)
+            pickle.dump(F,outfile)
+            outfile.close()
+        saved = open(opt.out,'rb')
+        saved_file = pickle.load(saved)
+
+        for dict_store in saved_file:
+            IG,src_seq,translated_sentence = dict_store["IG"], dict_store["src_seq"], dict_store["translated_sentence"]
+
+            IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
+            original_line = [validation_data.dataset.src_idx2word[idx.item()] for idx in src_seq[0]]
+            pred_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in translated_sentence]
+
+            attributor.visualisation(IG,original_line,pred_line)
