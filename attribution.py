@@ -12,6 +12,7 @@ from train import prepare_dataloaders
 from dataset import collate_fn, TranslationDataset
 from preprocess import read_instances_from_file, convert_instance_to_idx_seq
 from transformer.Models import Transformer
+from transformer.Translator import Translator
 
 # The first challenge is to handle beam search, this of course means for seq2seq problems we
 # apply IG in train phase 
@@ -77,16 +78,24 @@ class Attribution(object):
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
             IG = []
+            #IG ,tgt_IG = [],[]
             for k in range(1,self.m+1):
 
                 pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos,alpha=k/self.m)
                 
                 val,translated_sentence = torch.max(pred,1)
+                tgt_trans_sent = tgt_seq[0]
+                #tgt_val= torch.index_select(pred,0,tgt_trans_sent)
+                #print(tgt_val.shape)
                 for id_,translated_word in enumerate(val):
                     #Finds the gradient of a single sentence
 
-                    if k == 1: IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
-                    IG[id_] += torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
+                    if k == 1: 
+                        IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
+                        #tgt_IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(tgt_val[id_], self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
+                    else : 
+                        IG[id_] += torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
+                        #tgt_IG[id_] += torch.sum(1/self.m*self.model.encoder.difference*grad(tgt_val[id_], self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
             
             F.append({
                     "IG":IG,
@@ -97,7 +106,21 @@ class Attribution(object):
             if dev:
                 IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
                 return IG,src_seq,translated_sentence
-        return F 
+        return F
+
+    def attributor_batch_beam(self,training_data,opt):
+        def f(x):
+            x.to(self.device)
+            return x
+        translator = Translator(opt)
+        for batch in tqdm(training_data, mininterval=2, desc='  - (Attributing)', leave=False):
+            src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
+            all_hyp, all_scores = translator.translate_batch(src_seq, src_pos,False) # translations and Beam search scores
+            print(all_hyp)
+            # for idx_seqs in all_hyp:
+            #     for idx_seq in idx_seqs:
+            #         print(grad(idx_seq, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0])
+            # print('[Info] Finished.') 
 
     def visualisation(self,IG,original_line,pred_line):
         fig = plt.figure(figsize=(8, 8.5))
@@ -127,6 +150,10 @@ if __name__ == "__main__":
     parser.add_argument('-model', required=True,
                         help='Path to model .pt file')
     parser.add_argument('-out',help='Path to output file of ')
+    parser.add_argument('-beam_size',default=5)
+    parser.add_argument('-n_best', type=int, default=1,
+                        help="""If verbose is set, will output the n_best
+                        decoded sentences""")
     parser.add_argument('-no_cuda', action='store_true')
     parser.add_argument('-dev', action='store_true')
 
@@ -139,6 +166,7 @@ if __name__ == "__main__":
 
     training_data, validation_data = prepare_dataloaders(data, opt)
     attributor = Attribution(opt)
+    #attributor.attributor_batch_beam(validation_data,opt)
     if opt.dev : 
         IG,src_seq,translated_sentence  = attributor.attribute_batch(validation_data,dev=True)
 
