@@ -59,6 +59,12 @@ python translate.py -model trained.chkpt -vocab data/multi30k.atok.low.pt -src d
 python attribution.py -model trained.chkpt -data data/multi30k.atok.low.pt -out igs.pkl -no_cuda
 ```
 
+To close all the matplotlib figures type
+```
+ps aux | grep python 
+kill <process_id>
+```
+
 # Results
 ![Alt Text](https://github.com/Neoanarika/torchexplainer/blob/master/translation.png)
 Figure 1: Translating English to German, the brighter the square the more the model uses that word to come up with its corresponding translation. 
