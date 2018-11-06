@@ -50,7 +50,8 @@ class Attribution(object):
             d_inner=model_opt.d_inner_hid,
             n_layers=model_opt.n_layers,
             n_head=model_opt.n_head,
-            dropout=model_opt.dropout)
+            dropout=model_opt.dropout,
+            return_attns=opt.return_attns)
 
         #Load the actual model weights 
         model.load_state_dict(checkpoint['model'])
@@ -166,10 +167,11 @@ if __name__ == "__main__":
                         help='Path to model .pt file')
     parser.add_argument('-out',help='Path to output file of ')
     parser.add_argument('-beam_size',default=5)
-    parser.add_argument('-debug', action='store_true')
     parser.add_argument('-n_best', type=int, default=1,
                         help="""If verbose is set, will output the n_best
                         decoded sentences""")
+    parser.add_argument('-return_attns', action='store_true')
+    parser.add_argument('-debug', action='store_true')
     parser.add_argument('-no_cuda', action='store_true')
     parser.add_argument('-dev', action='store_true')
 

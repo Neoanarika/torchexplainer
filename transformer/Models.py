@@ -66,6 +66,7 @@ class Encoder(nn.Module):
         n_position = len_max_seq + 1
         self.emb = 0
         self.difference = 0
+        self.enc_slf_attn_list = []
         self.src_word_emb = nn.Embedding(
             n_src_vocab, d_word_vec, padding_idx=Constants.PAD)
 
@@ -79,7 +80,6 @@ class Encoder(nn.Module):
 
     def forward(self, src_seq, src_pos, alpha = 1.0,return_attns=False):
 
-        enc_slf_attn_list = []
 
         # -- Prepare masks
         slf_attn_mask = get_attn_key_pad_mask(seq_k=src_seq, seq_q=src_seq)
@@ -100,7 +100,7 @@ class Encoder(nn.Module):
                 non_pad_mask=non_pad_mask,
                 slf_attn_mask=slf_attn_mask)
         if return_attns:
-            enc_slf_attn_list += [enc_slf_attn]
+            self.enc_slf_attn_list += [enc_slf_attn]
 
         for enc_layer in self.layer_stack[1:]:
             enc_output, enc_slf_attn = enc_layer(
@@ -108,10 +108,8 @@ class Encoder(nn.Module):
                 non_pad_mask=non_pad_mask,
                 slf_attn_mask=slf_attn_mask)
             if return_attns:
-                enc_slf_attn_list += [enc_slf_attn]
+                self.enc_slf_attn_list += [enc_slf_attn]
 
-        if return_attns:
-            return enc_output, enc_slf_attn_list
         return enc_output,
 
 class Decoder(nn.Module):
@@ -126,6 +124,8 @@ class Decoder(nn.Module):
         super().__init__()
         n_position = len_max_seq + 1
 
+        self.dec_slf_attn_list, self.dec_enc_attn_list = [], []
+
         self.tgt_word_emb = nn.Embedding(
             n_tgt_vocab, d_word_vec, padding_idx=Constants.PAD)
 
@@ -138,8 +138,6 @@ class Decoder(nn.Module):
             for _ in range(n_layers)])
 
     def forward(self, tgt_seq, tgt_pos, src_seq, enc_output, return_attns=False):
-
-        dec_slf_attn_list, dec_enc_attn_list = [], []
 
         # -- Prepare masks
         non_pad_mask = get_non_pad_mask(tgt_seq)
@@ -161,11 +159,9 @@ class Decoder(nn.Module):
                 dec_enc_attn_mask=dec_enc_attn_mask)
 
             if return_attns:
-                dec_slf_attn_list += [dec_slf_attn]
-                dec_enc_attn_list += [dec_enc_attn]
+                self.dec_slf_attn_list += [dec_slf_attn]
+                self.dec_enc_attn_list += [dec_enc_attn]
 
-        if return_attns:
-            return dec_output, dec_slf_attn_list, dec_enc_attn_list
         return dec_output,
 
 class Transformer(nn.Module):
@@ -177,7 +173,7 @@ class Transformer(nn.Module):
             d_word_vec=512, d_model=512, d_inner=2048,
             n_layers=6, n_head=8, d_k=64, d_v=64, dropout=0.1,
             tgt_emb_prj_weight_sharing=True,
-            emb_src_tgt_weight_sharing=True):
+            emb_src_tgt_weight_sharing=True,return_attns=False):
 
         super().__init__()
 
@@ -185,13 +181,13 @@ class Transformer(nn.Module):
             n_src_vocab=n_src_vocab, len_max_seq=len_max_seq,
             d_word_vec=d_word_vec, d_model=d_model, d_inner=d_inner,
             n_layers=n_layers, n_head=n_head, d_k=d_k, d_v=d_v,
-            dropout=dropout)
+            dropout=dropout,return_attns=return_attns)
 
         self.decoder = Decoder(
             n_tgt_vocab=n_tgt_vocab, len_max_seq=len_max_seq,
             d_word_vec=d_word_vec, d_model=d_model, d_inner=d_inner,
             n_layers=n_layers, n_head=n_head, d_k=d_k, d_v=d_v,
-            dropout=dropout)
+            dropout=dropout,return_attns=return_attns)
 
         self.tgt_word_prj = nn.Linear(d_model, n_tgt_vocab, bias=False)
         nn.init.xavier_normal_(self.tgt_word_prj.weight)
