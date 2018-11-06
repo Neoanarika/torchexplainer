@@ -63,7 +63,7 @@ class Attribution(object):
         self.model = model
         self.model.eval()
 
-    def attribute_batch(self,training_data,dev=False):
+    def attribute_batch(self,training_data,dev=False,debug=False):
 
         # LongTensor cannot be backpropogated
         def f(x):
@@ -78,26 +78,38 @@ class Attribution(object):
             desc='  - (Attributing)   ', leave=False):
             src_seq, src_pos, tgt_seq, tgt_pos = map(f, batch)
             IG = []
-            #IG ,tgt_IG = [],[]
+            IG ,tgt_IG = [],[]
             for k in range(1,self.m+1):
 
                 pred = self.model(src_seq, src_pos, tgt_seq, tgt_pos,alpha=k/self.m)
                 
                 val,translated_sentence = torch.max(pred,1)
-                tgt_trans_sent = tgt_seq[0]
-                #tgt_val= torch.index_select(pred,0,tgt_trans_sent)
-                #print(tgt_val.shape)
+                tgt_trans_sent = tgt_seq[0][:len(val)]
+                if debug:
+                    tgt_val = []
+                    for pos,ids in enumerate(tgt_trans_sent): 
+                        tgt_val.append(pred[pos,ids])
+
                 for id_,translated_word in enumerate(val):
                     #Finds the gradient of a single sentence
 
                     if k == 1: 
                         IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
-                        #tgt_IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(tgt_val[id_], self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
+                        if debug : tgt_IG.append(torch.sum(1/self.m*self.model.encoder.difference*grad(tgt_val[id_], self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2))
                     else : 
                         IG[id_] += torch.sum(1/self.m*self.model.encoder.difference*grad(translated_word, self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
-                        #tgt_IG[id_] += torch.sum(1/self.m*self.model.encoder.difference*grad(tgt_val[id_], self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
+                        if debug: tgt_IG[id_] += torch.sum(1/self.m*self.model.encoder.difference*grad(tgt_val[id_], self.model.encoder.emb, retain_graph=True,allow_unused=True)[0],2)
             
-            F.append({
+            if debug:
+                F.append({
+                        "IG":IG,
+                        "tgt_IG":tgt_IG,
+                        "src_seq":src_seq,
+                        "translated_sentence":translated_sentence,
+                        "tgt_trans_sent":tgt_trans_sent
+                    })
+            else:
+                F.append({
                     "IG":IG,
                     "src_seq":src_seq,
                     "translated_sentence":translated_sentence,
@@ -105,6 +117,9 @@ class Attribution(object):
 
             if dev:
                 IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
+                if debug:
+                    tgt_IG = torch.squeeze(torch.stack(tgt_IG)).detach().numpy().T
+                    return IG,tgt_IG,src_seq,translated_sentence,tgt_trans_sent
                 return IG,src_seq,translated_sentence
         return F
 
@@ -151,6 +166,7 @@ if __name__ == "__main__":
                         help='Path to model .pt file')
     parser.add_argument('-out',help='Path to output file of ')
     parser.add_argument('-beam_size',default=5)
+    parser.add_argument('-debug', action='store_true')
     parser.add_argument('-n_best', type=int, default=1,
                         help="""If verbose is set, will output the n_best
                         decoded sentences""")
@@ -168,12 +184,17 @@ if __name__ == "__main__":
     attributor = Attribution(opt)
     #attributor.attributor_batch_beam(validation_data,opt)
     if opt.dev : 
-        IG,src_seq,translated_sentence  = attributor.attribute_batch(validation_data,dev=True)
+        if opt.debug:
+            IG,tgt_IG,src_seq,translated_sentence,tgt_trans_sent  = attributor.attribute_batch(validation_data,dev=True,debug=True)
+            right_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in tgt_trans_sent]
+        else:
+            IG,src_seq,translated_sentence = attributor.attribute_batch(validation_data,dev=True)
 
         original_line = [validation_data.dataset.src_idx2word[idx.item()] for idx in src_seq[0]]
         pred_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in translated_sentence]
 
         attributor.visualisation(IG,original_line,pred_line)
+        if opt.debug: attributor.visualisation(tgt_IG,original_line,right_line)
 
     else: 
         if not os.path.isfile(opt.out):
@@ -185,9 +206,16 @@ if __name__ == "__main__":
         saved_file = pickle.load(saved)
 
         for dict_store in saved_file:
-            IG,src_seq,translated_sentence = dict_store["IG"], dict_store["src_seq"], dict_store["translated_sentence"]
+            if opt.debug:
+                IG,tgt_IG,src_seq,translated_sentence,tgt_trans_sent  = attributor.attribute_batch(validation_data,dev=True)
+                tgt_IG = torch.squeeze(torch.stack(tgt_IG)).detach().numpy().T
 
             IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
+
             original_line = [validation_data.dataset.src_idx2word[idx.item()] for idx in src_seq[0]]
             pred_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in translated_sentence]
+
             attributor.visualisation(IG,original_line,pred_line)
+            if opt.debug:
+                right_line = [validation_data.dataset.tgt_idx2word[idx.item()] for idx in tgt_trans_sent]
+                attributor.visualisation(tgt_IG,original_line,right_line)
