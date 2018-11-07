@@ -177,17 +177,18 @@ class Transformer(nn.Module):
 
         super().__init__()
 
+        self.return_attns=return_attns
         self.encoder = Encoder(
             n_src_vocab=n_src_vocab, len_max_seq=len_max_seq,
             d_word_vec=d_word_vec, d_model=d_model, d_inner=d_inner,
             n_layers=n_layers, n_head=n_head, d_k=d_k, d_v=d_v,
-            dropout=dropout,return_attns=return_attns)
+            dropout=dropout)
 
         self.decoder = Decoder(
             n_tgt_vocab=n_tgt_vocab, len_max_seq=len_max_seq,
             d_word_vec=d_word_vec, d_model=d_model, d_inner=d_inner,
             n_layers=n_layers, n_head=n_head, d_k=d_k, d_v=d_v,
-            dropout=dropout,return_attns=return_attns)
+            dropout=dropout)
 
         self.tgt_word_prj = nn.Linear(d_model, n_tgt_vocab, bias=False)
         nn.init.xavier_normal_(self.tgt_word_prj.weight)
@@ -212,7 +213,7 @@ class Transformer(nn.Module):
 
         tgt_seq, tgt_pos = tgt_seq[:, :-1], tgt_pos[:, :-1]
 
-        enc_output, *_ = self.encoder(src_seq, src_pos,alpha = alpha)
-        dec_output, *_ = self.decoder(tgt_seq, tgt_pos, src_seq, enc_output)
+        enc_output, *_ = self.encoder(src_seq, src_pos,alpha = alpha,return_attns=self.return_attns)
+        dec_output, *_ = self.decoder(tgt_seq, tgt_pos, src_seq, enc_output,return_attns=self.return_attns)
         seq_logit = self.tgt_word_prj(dec_output) * self.x_logit_scale
         return seq_logit.view(-1, seq_logit.size(2))

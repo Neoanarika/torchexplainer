@@ -201,16 +201,19 @@ if __name__ == "__main__":
     else: 
         if not os.path.isfile(opt.out):
             outfile = open(opt.out,'wb')
-            F = attributor.attribute_batch(validation_data)
+            F = attributor.attribute_batch(validation_data,debug=opt.debug)
             pickle.dump(F,outfile)
             outfile.close()
         saved = open(opt.out,'rb')
         saved_file = pickle.load(saved)
 
         for dict_store in saved_file:
+            print(len(dict_store))
             if opt.debug:
-                IG,tgt_IG,src_seq,translated_sentence,tgt_trans_sent  = attributor.attribute_batch(validation_data,dev=True)
+                IG,tgt_IG,src_seq,translated_sentence,tgt_trans_sent  = dict_store["IG"],dict_store["tgt_IG"],dict_store["src_seq"],dict_store["translated_sentence"],dict_store["tgt_trans_sent"]
                 tgt_IG = torch.squeeze(torch.stack(tgt_IG)).detach().numpy().T
+            else:
+                IG,src_seq,translated_sentence  = dict_store["IG"],dict_store["src_seq"],dict_store["translated_sentence"]
 
             IG = torch.squeeze(torch.stack(IG)).detach().numpy().T
 
