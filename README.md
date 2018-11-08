@@ -72,6 +72,7 @@ python attribution.py -model trained.chkpt -data data/multi30k.atok.low.pt -out 
 
 # Results
 ![Alt Text](https://github.com/Neoanarika/torchexplainer/blob/master/translation.png)
+![Alt Text](https://github.com/Neoanarika/torchexplainer/blob/master/tgt_IG.png)
 Figure 1: Translating English to German, the brighter the square the more the model uses that word to come up with its corresponding translation. 
 
 # Acknowledgement
