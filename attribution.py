@@ -208,7 +208,6 @@ if __name__ == "__main__":
         saved_file = pickle.load(saved)
 
         for dict_store in saved_file:
-            print(len(dict_store))
             if opt.debug:
                 IG,tgt_IG,src_seq,translated_sentence,tgt_trans_sent  = dict_store["IG"],dict_store["tgt_IG"],dict_store["src_seq"],dict_store["translated_sentence"],dict_store["tgt_trans_sent"]
                 tgt_IG = torch.squeeze(torch.stack(tgt_IG)).detach().numpy().T
