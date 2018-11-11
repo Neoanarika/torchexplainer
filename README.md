@@ -1,6 +1,6 @@
 # torchexplainer : Axiomatic Attribution for NMT
 
-This is a Pytorch implemementation of Axiomatic Attribution for Deep Networks specifically for NMT application. The underlying NMT model is from the PyTorch implementation of the Transformer model in "[Attention is All You Need](https://arxiv.org/abs/1706.03762)" (Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, Illia Polosukhin, arxiv, 2017) by Yu-Hsiang Huang.
+This is a Pytorch implemementation of Axiomatic Attribution for Deep Networks specifically for NMT application. The underlying NMT model is from the PyTorch implementation of the Transformer model in "[Attention is All You Need](https://arxiv.org/abs/1706.03762)" (Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan N. Gomez, Lukasz Kaiser, Illia Polosukhin, arxiv, 2017) by Yu-Hsiang Huang. The seq2seq impelementation is on the seq2seq branch. 
 
 # Requirement
 - python 3.4+
