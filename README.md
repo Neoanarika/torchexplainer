@@ -10,7 +10,7 @@ python examples/sample.py --train_path $TRAIN_PATH --dev_path $DEV_PATH  --resum
 
 To debug
 ```
-python examples/sample.py --train_path $TRAIN_PATH --dev_path $DEV_PATH  --resume --grad
+python examples/sample.py --train_path $TRAIN_PATH --dev_path $DEV_PATH  --resume --grad --debug
 ```
 # Installation
 This package requires Python 2.7 or 3.6. We recommend creating a new virtual environment for this project (using virtualenv or conda).  
