@@ -17,6 +17,23 @@ from seq2seq.dataset import SourceField, TargetField
 from seq2seq.evaluator import Predictor
 from seq2seq.util.checkpoint import Checkpoint
 
+def visualisation(IG,original_line,pred_line):
+    fig = plt.figure(figsize=(8, 8.5))
+    ax = fig.add_subplot(1, 1, 1)
+    img = ax.imshow(IG, interpolation='nearest', cmap='gray')
+    fig.colorbar(img, ax=ax)
+
+    ax.set_yticks(range(len(original_line)))
+    ax.set_yticklabels(original_line)
+
+    ax.set_xticks(range(len(pred_line)))
+    ax.set_xticklabels(pred_line, rotation=45)
+
+    ax.set_xlabel('Output Sequence')
+    ax.set_ylabel('Input Sequence')
+    fig.show()
+    plt.show()
+
 try:
     raw_input          # Python 2
 except NameError:
@@ -137,21 +154,12 @@ predictor = Predictor(seq2seq, input_vocab, output_vocab,m=opt.m)
 while True:
     seq_str = raw_input("Type in a source sequence:")
     seq = seq_str.strip().split()
-    reverse_seq = seq.reverse()
-    pred_line = predictor.predict(seq,no_grad = not opt.grad)
-    a = np.vstack(list(map(lambda x : torch.sum(x[0],1).detach().numpy(),predictor.IG))).T
-    fig = plt.figure(figsize=(8, 8.5))
-    ax = fig.add_subplot(1, 1, 1)
-    img = ax.imshow(a,cmap="gray",interpolation="nearest")
-    fig.colorbar(img, ax=ax)
-
-    ax.set_yticks(range(len(seq)))
-    ax.set_yticklabels(seq)
-
-    ax.set_xticks(range(len(pred_line)))
-    ax.set_xticklabels(pred_line, rotation=45)
-
-    ax.set_xlabel('Output Sequence')
-    ax.set_ylabel('Input Sequence')
-    fig.show()
-    plt.show()
+    reverse_seq = seq.copy()
+    reverse_seq.reverse()
+    pred_line = predictor.predict(seq,no_grad = not opt.grad,tgt_seq = reverse_seq)
+    print(pred_line)
+    ig = np.vstack(list(map(lambda x : torch.sum(x[0],1).detach().numpy(),predictor.IG))).T
+    tgt_ig = np.vstack(list(map(lambda x : torch.sum(x[0],1).detach().numpy(),predictor.tgt_IG))).T
+    visualisation(ig,seq,pred_line)
+    visualisation(tgt_ig,seq,pred_line)
+    

@@ -24,11 +24,12 @@ class Predictor(object):
         self.IG = []
         self.tgt_IG = []
 
-    def get_decoder_features(self, src_seq,tgt_seq=[],no_grad=True):
+    def get_decoder_features(self, src_seq,no_grad=True,tgt_seq=[]):
         src_id_seq = torch.LongTensor([self.src_vocab.stoi[tok] for tok in src_seq]).view(1, -1)
         if torch.cuda.is_available():
             src_id_seq = src_id_seq.cuda()
 
+        #print("no_grad",no_grad)
         if no_grad:
             with torch.no_grad():
                 softmax_list, _, other = self.model(src_id_seq, [len(src_seq)])
@@ -38,14 +39,22 @@ class Predictor(object):
                 length = other['length'][0]
                 for i in range(length):
                     if k == 1 : 
-                        #if len(tgt_seq) > 0: self.tgt_IG.append()
+                        if len(tgt_seq) > 0: 
+                            if i == length-1: 
+                                 self.tgt_IG.append(1/self.m * self.model.encoder.diff * grad(torch.max(softmax_list[i]), self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0]) 
+                            else:
+                                self.tgt_IG.append(1/self.m * self.model.encoder.diff * grad(softmax_list[i][0][int(tgt_seq[i])-1], self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0])
                         self.IG.append(1/self.m * self.model.encoder.diff * grad(torch.max(softmax_list[i]), self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0])
                     else:
+                        if i == length-1: 
+                            self.tgt_IG[i]+=(1/self.m * self.model.encoder.diff * grad(torch.max(softmax_list[i]), self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0]) 
+                        else:
+                            self.tgt_IG[i]+=(1/self.m * self.model.encoder.diff * grad(softmax_list[i][0][int(tgt_seq[i])-1], self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0])
                         self.IG[i] += 1/self.m * self.model.encoder.diff * grad(torch.max(softmax_list[i]), self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0]
-                
+                        
         return other
 
-    def predict(self, src_seq,no_grad=True):
+    def predict(self, src_seq,no_grad=True,tgt_seq=[]):
         """ Make prediction given `src_seq` as input.
 
         Args:
@@ -56,7 +65,8 @@ class Predictor(object):
             by the pre-trained model
         """
         self.IG = []
-        other = self.get_decoder_features(src_seq,no_grad)
+        self.tgt_IG = []
+        other = self.get_decoder_features(src_seq,no_grad,tgt_seq=tgt_seq)
 
         length = other['length'][0]
 
