@@ -46,15 +46,16 @@ class Predictor(object):
                                 self.tgt_IG.append(1/self.m * self.model.encoder.diff * grad(softmax_list[i][0][int(tgt_seq[i])-1], self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0])
                         self.IG.append(1/self.m * self.model.encoder.diff * grad(torch.max(softmax_list[i]), self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0])
                     else:
-                        if i == length-1: 
-                            self.tgt_IG[i]+=(1/self.m * self.model.encoder.diff * grad(torch.max(softmax_list[i]), self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0]) 
-                        else:
-                            self.tgt_IG[i]+=(1/self.m * self.model.encoder.diff * grad(softmax_list[i][0][int(tgt_seq[i])-1], self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0])
+                        if len(tgt_seq) > 0: 
+                            if i == length-1: 
+                                self.tgt_IG[i]+=(1/self.m * self.model.encoder.diff * grad(torch.max(softmax_list[i]), self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0]) 
+                            else:
+                                self.tgt_IG[i]+=(1/self.m * self.model.encoder.diff * grad(softmax_list[i][0][int(tgt_seq[i])-1], self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0])
                         self.IG[i] += 1/self.m * self.model.encoder.diff * grad(torch.max(softmax_list[i]), self.model.encoder.embedded, retain_graph=True,allow_unused=True)[0][0]
                         
         return other
 
-    def predict(self, src_seq,no_grad=True,tgt_seq=[]):
+    def predict(self, src_seq,no_grad=True,tgt_seq=[],debug=False):
         """ Make prediction given `src_seq` as input.
 
         Args:
@@ -66,7 +67,8 @@ class Predictor(object):
         """
         self.IG = []
         self.tgt_IG = []
-        other = self.get_decoder_features(src_seq,no_grad,tgt_seq=tgt_seq)
+        if debug: other = self.get_decoder_features(src_seq,no_grad,tgt_seq=tgt_seq)
+        else: other = self.get_decoder_features(src_seq,no_grad)
 
         length = other['length'][0]
 

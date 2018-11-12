@@ -63,6 +63,8 @@ parser.add_argument('--resume', action='store_true', dest='resume',
                     help='Indicates if training has to be resumed from the latest checkpoint')
 parser.add_argument('--grad',  action='store_true',
                     default=False)
+parser.add_argument('--debug',  action='store_true',
+                    default=False)
 parser.add_argument('--log-level', dest='log_level',
                     default='info',
                     help='Logging level.')
@@ -156,10 +158,12 @@ while True:
     seq = seq_str.strip().split()
     reverse_seq = seq.copy()
     reverse_seq.reverse()
-    pred_line = predictor.predict(seq,no_grad = not opt.grad,tgt_seq = reverse_seq)
+    if opt.debug: pred_line = predictor.predict(seq,no_grad = not opt.grad,tgt_seq = reverse_seq)
+    else: pred_line = predictor.predict(seq,no_grad = not opt.grad)
     print(pred_line)
-    ig = np.vstack(list(map(lambda x : torch.sum(x[0],1).detach().numpy(),predictor.IG))).T
-    tgt_ig = np.vstack(list(map(lambda x : torch.sum(x[0],1).detach().numpy(),predictor.tgt_IG))).T
-    visualisation(ig,seq,pred_line)
-    visualisation(tgt_ig,seq,pred_line)
-    
+    if opt.grad:
+        ig = np.vstack(list(map(lambda x : torch.sum(x[0],1).detach().numpy(),predictor.IG))).T
+        visualisation(ig,seq,pred_line)
+    if opt.debug:
+        tgt_ig = np.vstack(list(map(lambda x : torch.sum(x[0],1).detach().numpy(),predictor.tgt_IG))).T
+        visualisation(tgt_ig,seq,pred_line)
